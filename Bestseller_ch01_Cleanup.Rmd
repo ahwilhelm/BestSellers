@@ -1,0 +1,151 @@
+---
+title: 'NYT Bestsellers: 01 Data Cleanup'
+author: "A.H. Wilhelm"
+date: "8/22/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+###This set of charts is based on data I found online from another group's work (which was really awesome, by the way).
+
+I worked with many packages to wrangle the data. Among other things, I filled in holes for author_gender, and joined data to create new values like totals and averages. In the end I also filtered out "multi-author" books so I could do a clean gender compare. 
+
+This sounds so simple! But as a newbie it took me a mill lines of code.
+
+##Loading packages and data.
+
+```{r loading, warning=F, message=F}
+library(readr)
+library(ggplot2)
+library(forcats)
+library(dplyr)
+library(ggthemes) 
+library(DT)
+library(tidyr) 
+library(stringr)
+
+#create dataframes from original data files
+df_nytfic_isbntall<-read.csv("data/originals/nytb2008-2016Fiction.csv")
+df_nytnonfic_isbntall<-read.csv("data/originals/nytb2008-2016NonFiction.csv")
+df_nyt_info<-read.csv("data/originals/isbnToInfo.csv")
+
+```
+
+##Cleaning data
+I cleaned up the data a bit to fill some holes I noticed once I began to visualize it. Here I am filling in some missing genders and correcting some fiction/nonfiction things. 
+
+```{r cleaning_data, warning=F, message=F}
+
+df_nyt_info2 <- df_nyt_info %>% 
+  mutate(author_gender=case_when(
+    Author_NY %in% c("James Patterson and Maxine Paetro", "the editors of Life magazine", 
+                     "W R Bolen and the creators of TotalFratMovecom", "Rorke Denver and Ellis Henican",
+                     "the staff of The Onion", "Tim Howard with Ali Benjamin", "the editors of Life Magazine",
+                     "Howard Schultz and Rajiv Chandrasekaran" )~"multi",
+    Author_NY %in% c("Kresley Cole", "J D Robb", "J R Ward", "Kathryn Stockett", "Danielle Steel", "Jhumpa Lahiri",
+                     "Lisa Lutz", "M L Stedman", "Téa Obreht", "J Courtney Sullivan", "JR Ward",
+                     "Karen Kingsbury")~"female",
+    Author_NY %in% c("Bernard Cornwell","Bernard Cornwell","D T Max", "S C Gwynne", 
+                     "A J Baime", "M O Walsh","Glennon Doyle Melton", "T Boone Pickens", "Rinker Buck", "David Weber", "T C Boyle",
+                     "T Coraghessan Boyle", "Jon Ronson", "Nassir Ghaemi")~"male",
+    TRUE ~ as.character(author_gender)
+    )) %>% 
+  mutate(Category=case_when(
+    Author_NY=="Karen Kingsbury" ~"Religious Fiction", 
+    Author_NY=="David Sedaris" & Title_NY=="HOLIDAYS ON ICE"~"Nonfiction General",
+    TRUE ~ as.character(Category)
+    ))
+
+```
+
+I wanted to convert the "wide"" isbn file to "tall" so that I could do other things with the data like tabulate number of weeks a book stayed on the list, and also join it with the information about the books.
+```{r spreading_data, warning=F, message=F}
+#fic and nonfic: make isbn/weeks tall 
+df_nytfic_isbntall2<- df_nytfic_isbntall%>% 
+  gather(key="number", value="isbn",2:21)
+df_nytnonfic_isbntall2<- df_nytnonfic_isbntall%>% 
+  gather(key="number", value="isbn",2:21)
+
+#fic and nonfic: total number of weeks per isbn/title
+df_nytfic_isbnweeks<- df_nytfic_isbntall2 %>% 
+  group_by(isbn) %>% 
+  summarize(weeks=n()) %>% 
+  mutate(type="fiction")
+
+df_nytnonfic_isbnweeks<- df_nytnonfic_isbntall2 %>% 
+  group_by(isbn) %>% 
+  summarize(weeks=n()) %>% 
+  mutate(type="nonfiction")
+
+#join weeks
+df_both_isbnweeks <- union(df_nytfic_isbnweeks, df_nytnonfic_isbnweeks)
+
+#Replace X# ranks with numbers, to have rank available for line chart y axis.
+df_nytfic_isbntall2<-df_nytfic_isbntall2 %>% 
+  mutate(number = as.character(number),
+         number = if_else(number =="X1", "01", number ),
+         number = if_else(number =="X2", "02", number ),
+         number = if_else(number =="X3", "03", number ),
+         number = if_else(number =="X4", "04", number ),
+         number = if_else(number =="X5", "05", number ),
+         number = if_else(number =="X6", "06", number ),
+         number = if_else(number =="X7", "07", number ),
+         number = if_else(number =="X8", "08", number ),
+         number = if_else(number =="X9", "09", number ),
+         number = if_else(number =="X10", "10", number ),
+         number = if_else(number =="X11", "11", number ),
+         number = if_else(number =="X12", "12", number ),
+         number = if_else(number =="X13", "13", number ),
+         number = if_else(number =="X14", "14", number ),
+         number = if_else(number =="X15", "15", number ),
+         number = if_else(number =="X16", "16", number ),
+         number = if_else(number =="X17", "17", number ),
+         number = if_else(number =="X18", "18", number ),
+         number = if_else(number =="X19", "19", number ),
+         number = if_else(number =="X20", "20", number ))
+
+df_nytnonfic_isbntall2<-df_nytnonfic_isbntall2 %>% 
+  mutate(number = as.character(number),
+         number = if_else(number =="X1", "01", number ),
+         number = if_else(number =="X2", "02", number ),
+         number = if_else(number =="X3", "03", number ),
+         number = if_else(number =="X4", "04", number ),
+         number = if_else(number =="X5", "05", number ),
+         number = if_else(number =="X6", "06", number ),
+         number = if_else(number =="X7", "07", number ),
+         number = if_else(number =="X8", "08", number ),
+         number = if_else(number =="X9", "09", number ),
+         number = if_else(number =="X10", "10", number ),
+         number = if_else(number =="X11", "11", number ),
+         number = if_else(number =="X12", "12", number ),
+         number = if_else(number =="X13", "13", number ),
+         number = if_else(number =="X14", "14", number ),
+         number = if_else(number =="X15", "15", number ),
+         number = if_else(number =="X16", "16", number ),
+         number = if_else(number =="X17", "17", number ),
+         number = if_else(number =="X18", "18", number ),
+         number = if_else(number =="X19", "19", number ),
+         number = if_else(number =="X20", "20", number ))
+
+#combine fic_ and nonfic_ isbntall frames into one data frame
+df_both_isbntall <- union(df_nytfic_isbntall2, df_nytnonfic_isbntall2)
+
+
+```
+
+And now that I have the datasets in the shape I want, I am writing them out.
+```{r writing_files, warning=F, message=F}
+#****Create and write out data sets****#
+
+#join df_both_isbnweeks & df_nytinfo, WRITE CSV
+df_nytinfo_weeks<-left_join(df_nyt_info2, df_both_isbnweeks, by="isbn")
+write_csv(df_nytinfo_weeks, "nytinfo_weeks.csv")
+
+#join df_both_isbntall & df_nytinfo_weeks, WRITE CSV
+df_nytinfo_rank<-left_join(df_nytinfo_weeks, df_both_isbntall, by="isbn")
+write_csv(df_nytinfo_rank, "nytinfo_rank.csv")
+
+```
+
