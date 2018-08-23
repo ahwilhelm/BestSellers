@@ -1,0 +1,99 @@
+---
+title: 'NYT Bestsellers: 04 Rank and Week'
+author: "A.H. Wilhelm"
+date: "8/22/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+##I compare rank and week
+I thought it would be interesting to see (or not) how long titles stayed on the list compared to where they entered the list.
+
+###Loading the data.
+
+```{r loading, warning=F, message=F}
+#I'm not even sure I need all these packages...
+
+library(readr)
+library(ggplot2)
+library(forcats)
+library(dplyr)
+library(ggthemes) 
+library(DT)
+library(tidyr)
+library(stringr)
+library(ggsci)
+library(RColorBrewer)
+library(ggrepel)
+
+#create data frames
+df_nytinfo_rank <- read_csv("data/output/nytinfo_rank.csv")
+```
+
+###Get the data into shape
+
+I need to clean out some NAs, and also get just the rank and total # weeks for each title
+```{r shapedata, warning=F, message=F}
+
+#remove NAs
+df_nytinfo_rank1<-df_nytinfo_rank %>%filter(!is.na(type))
+
+#convert dates to dates for axis order
+df_nytinfo_rank1$date<- as.Date( as.character(df_nytinfo_rank1$date), "%Y-%m-%d")
+
+#sort by date. Select first unique isbn.
+df_nytinfo_rank2 <- df_nytinfo_rank1 %>%
+  arrange(date)
+
+#new_uniq will contain unique dataset without the duplicates. 
+df_nytinfo_rank3 <- df_nytinfo_rank2[!duplicated(df_nytinfo_rank2[c('isbn')]),] 
+
+
+```
+
+
+###Create the chart
+```{r create_chart, warning=F, message=F}
+ggplot(df_nytinfo_rank3,
+       aes(x=weeks, y=number))+
+  geom_point(size=3.0,aes(color=author_gender),alpha=0.5)+
+  scale_color_manual(name="Author Gender", values = c("female" = "#D8666D", "male" = "#207178","multi"="#E69F00"))+
+  theme_minimal()+
+  theme(panel.grid.major=element_blank())+
+  theme(legend.position="none")+
+  labs(x="How long it stayed (weeks)", y="Where it entered (rank)",
+       title="Rank versus staying power",
+       subtitle="How long bestsellers stayed on the list \ncompared to where they started, 2008-2016")+
+  theme_minimal()+
+  theme(
+    panel.grid.major=element_blank(),
+    panel.grid.minor=element_blank(),
+    panel.background = element_rect(fill = NA, colour = NA),
+    panel.grid.major.x=element_line(linetype="dashed",colour="gray"),
+    panel.grid.major.y=element_line(size=5.5,color="gray95"),
+    plot.title=element_text(face="bold", size=17, hjust=0.5, margin = margin(20, 0, 5, 0)),
+    plot.subtitle=element_text(colour="black", size=14, hjust=0.5, margin = margin(0, 0, 20, 0)),
+    plot.caption=element_text(colour="black", size=9, margin = margin(0, 10, 10, 10)),
+    strip.text = element_text(face="bold", colour="gray49", size=15),
+    legend.position="top",
+    legend.text = element_text(colour="black",size=10),
+    legend.title = element_text(colour="black", size=10, face="bold"),
+    axis.text.x= element_text(size=6),
+    axis.text.y= element_text(size=6))
+```
+ 
+###Who were the big players, like that one that stayed 200 (actually 199) weeks?
+
+```{r create_toptable, warning=F, message=F}
+#top 5 fiction
+nyttopsall <- df_nytinfo_rank3 %>% 
+  select(Title_NY, Category, Author_NY, weeks, type) %>% 
+  arrange(desc(weeks)) %>% 
+  head(5) 
+  
+datatable(nyttopsall)
+
+```
+

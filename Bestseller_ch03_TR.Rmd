@@ -1,0 +1,71 @@
+---
+title: 'NYT Bestsellers: 03 Tops and Ranks'
+author: "A.H. Wilhelm"
+date: "8/22/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+###I created a couple of data tables to see tops.
+
+##Loading the data.
+
+```{r loading, warning=F, message=F}
+library(readr)
+library(ggplot2)
+library(forcats)
+library(dplyr)
+library(ggthemes) 
+library(DT)
+library(tidyr)
+library(stringr)
+#create dataframes from new data files
+df_nytinfo_rank <- read_csv("data/output/nytinfo_rank.csv")
+df_nytinfo_weeks <- read_csv("data/output/nytinfo_weeks.csv")
+```
+
+##Create data tables
+
+Create a data table of all titles. (Sorting this will show some confusion with "The Help", which is disappointing! I believe it is caused because it is listed under two different ISBNs, but I'm too tired to figure out where that occurred...)
+```{r create_datatable1, warning=F, message=F}
+
+#subset for DT
+nytsort <- select(df_nytinfo_weeks, Title_NY, Category, Author_NY, weeks, type)
+datatable(nytsort)
+
+```
+
+
+
+
+#The 5 fiction books that stayed on the list the longest were:
+```{r create_topFtable, warning=F, message=F}
+#top 5 fiction
+nyttopsf <- nytsort %>% 
+  filter(type=="fiction") %>% 
+  arrange(desc(weeks)) %>% 
+  head(5) 
+  
+datatable(nyttopsf)
+
+```
+Wow, "The Help" and "A Dance With Dragons" were on the list for more than two years. TWO YEARS!!! That's a long freaking time! And seeing as how this is the first time I've ever heard of "A Dance With Dragons", I'm starting to wonder if I even know all that much about books. 
+
+
+
+
+
+#The top 5 nonfiction books were:
+```{r create_topNFtable, warning=F, message=F}
+#top 5 nonfiction
+nyttopsnf <- nytsort %>% 
+  filter(type=="nonfiction") %>% 
+  arrange(desc(weeks)) %>% 
+  head(5) 
+
+  datatable(nyttopsnf)
+
+```
+I'd forgotten all about "Unbroken", but wow what a book that was. 
